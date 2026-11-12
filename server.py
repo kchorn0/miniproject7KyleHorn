@@ -27,12 +27,10 @@ import requests
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
-# IMPORTANT: The stdio transport uses stdout for the MCP protocol itself.
-# Anything printed to stdout would corrupt that stream, so we never use
-# print() and send all log messages to stderr instead.
+#Logging
+# IMPORTANT: The stdio transport uses stdout to talk to Claude Code.
+# Anything printed to stdout would break that connection, so this file
+# never uses print() and sends all log messages to stderr instead.
 logging.basicConfig(
     stream=sys.stderr,
     level=logging.INFO,
@@ -40,113 +38,163 @@ logging.basicConfig(
 )
 log = logging.getLogger("practice-hub")
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-# Load .env from this script's folder (Claude Code may start the server from
-# a different working directory). override=False means real environment
-# variables win over values in the .env file.
+#Config
+# Loads the .env file from this script's folder (Claude Code may start the
+# server from a different folder). override=False means real environment
+# variables win over the values in the .env file.
 load_dotenv(Path(__file__).resolve().parent / ".env", override=False)
 
-API_URL = os.environ.get("PRACTICE_API_URL", "https://practice.fhsucyber.com").rstrip("/")
-API_TOKEN = os.environ.get("PRACTICE_API_TOKEN")
-REQUEST_TIMEOUT = 15  # seconds
+# Gets the API URL from the environment variables (defaults to the course Hub)
+BASE = os.environ.get("PRACTICE_API_URL", "https://practice.fhsucyber.com").rstrip("/")
+# Gets the API token from the computer's environment variables
+TOKEN = os.environ.get("PRACTICE_API_TOKEN")
+# Creates the Authorization header using the API token Bearer
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+# Stops a request from hanging forever if the Hub does not answer
+TIMEOUT = 15  # seconds
 
-if not API_TOKEN:
-    # Don't crash: the server still starts, and every tool explains the problem.
+# Checks if the API token was not found
+if not TOKEN:
+    # Warns instead of crashing - the tools will return a clear 401 message
     log.warning("PRACTICE_API_TOKEN is not set - API calls will fail until it is.")
 
-# ---------------------------------------------------------------------------
-# MCP server
-# ---------------------------------------------------------------------------
+# Creates the MCP server that Claude Code will connect to
 mcp = FastMCP("practice-hub")
 
-# Friendly explanations for the status codes the Practice Hub API returns.
-ERROR_MESSAGES = {
-    400: "Bad request - the API could not understand the request.",
-    401: "Unauthorized - your API token is missing or invalid. "
-         "Check that PRACTICE_API_TOKEN is set correctly.",
-    403: "Forbidden - you can only edit or delete your own posts.",
-    404: "Not found - no post exists with that id.",
-    409: "Conflict - the request conflicts with existing data.",
-    422: "Validation error - one or more fields are missing or invalid.",
-    429: "Too many requests - slow down and try again shortly.",
-}
+
+#Handle Errors
+def _handle_error(resp):
+    """Turn a failed API response into a clear error message.
+
+    Unlike MP1, this never prints (stdout belongs to MCP) and never raises
+    (an exception would crash the tool). It returns a dict the model can
+    read and explain to the user instead.
+    """
+    # Gets the error details from the API response (if the body is JSON)
+    try:
+        detail = resp.json().get("detail", "Unknown error.")
+    except (ValueError, AttributeError):
+        detail = resp.text or "Unknown error."
+
+    # Checks if the API returned a 401 error
+    if resp.status_code == 401:
+        message = "Invalid or missing API token. Check that PRACTICE_API_TOKEN is set."
+    # Checks if the API returned a 403 error
+    elif resp.status_code == 403:
+        message = "You can only edit or delete your own posts."
+    # Checks if the API returned a 404 error
+    elif resp.status_code == 404:
+        message = "Post not found. No post exists with that id."
+    # Checks if the API returned a 422 error
+    elif resp.status_code == 422:
+        message = "Invalid data. One or more fields are missing or not valid."
+    # Handles any other type of error
+    else:
+        message = f"The API returned HTTP {resp.status_code}."
+
+    # Logs the failure to stderr (never stdout)
+    log.warning("API error %s: %s", resp.status_code, detail)
+    # Returns the error so the model can explain it instead of crashing
+    return {"error": message, "status_code": resp.status_code, "detail": detail}
 
 
-def api_request(method: str, path: str, **kwargs) -> dict | list:
-    """Send an authenticated request to the Practice Hub API.
+#Handle Connection Errors
+def _connection_error(exc):
+    """Turn a network problem (timeout, no connection) into a clear error message."""
+    # Checks if the Hub took too long to answer
+    if isinstance(exc, requests.exceptions.Timeout):
+        message = f"The Practice Hub did not respond within {TIMEOUT} seconds."
+    # Checks if the Hub could not be reached at all
+    elif isinstance(exc, requests.exceptions.ConnectionError):
+        message = f"Could not connect to the Practice Hub at {BASE}."
+    # Handles any other request problem
+    else:
+        message = f"Request failed: {exc}"
 
-    Every tool goes through this one helper so authentication and error
-    handling live in a single place. It never raises: on any failure it
-    returns a dict like {"error": "...", "status_code": 404} that the model
-    can read and explain to the user, so the MCP server keeps running.
+    log.warning(message)
+    return {"error": message}
+
+
+#Tools
+# Each tool calls one Practice Hub endpoint. The docstrings matter: the model
+# reads them to decide when to call each tool and what to pass in.
+
+#Read(List)
+@mcp.tool()
+def list_posts(mine: bool = False, tag: str | None = None, limit: int = 50) -> list[dict] | dict:
+    """List posts on the Practice Hub, newest first.
+
+    Use this to browse posts or to find a post's id. When the user asks about
+    "my posts", set mine=True so only posts owned by the token's account are
+    returned.
 
     Args:
-        method: HTTP method, e.g. "GET", "POST", "PATCH", "DELETE".
-        path: API path starting with "/", e.g. "/api/v1/posts".
-        **kwargs: Passed through to requests (e.g. params=..., json=...).
+        mine: True to return only your own posts; False (default) for everyone's posts.
+        tag: Optional tag to filter by, e.g. "python". Only posts with this tag are returned.
+        limit: Maximum number of posts to return (1-100, default 50).
 
     Returns:
-        The decoded JSON response on success, {"success": True} for an
-        empty success response (like 204 No Content from DELETE), or an
-        {"error": ...} dict on failure.
+        A list of posts (each with id, title, body, tags, author_name,
+        created_at, updated_at), or a dict with an "error" key if the request failed.
     """
-    if not API_TOKEN:
-        return {
-            "error": "PRACTICE_API_TOKEN is not set. Add it to your environment "
-                     "or .env file and restart the server."
-        }
-
-    url = f"{API_URL}{path}"
-    headers = {"Authorization": f"Bearer {API_TOKEN}"}
-    log.info("%s %s", method, path)  # never log the token
+    # Creates the query parameters for the request
+    params = {"mine": mine, "limit": limit}
+    # Checks if a tag was provided
+    if tag:
+        # Adds the tag to the query parameters
+        params["tag"] = tag
 
     try:
-        response = requests.request(
-            method, url, headers=headers, timeout=REQUEST_TIMEOUT, **kwargs
-        )
-    except requests.exceptions.Timeout:
-        return {"error": f"The Practice Hub did not respond within {REQUEST_TIMEOUT} seconds."}
-    except requests.exceptions.ConnectionError:
-        return {"error": f"Could not connect to the Practice Hub at {API_URL}."}
+        # Sends a GET request to retrieve posts and sends the query parameters with the request
+        resp = requests.get(f"{BASE}/api/v1/posts", headers=HEADERS, params=params, timeout=TIMEOUT)
     except requests.exceptions.RequestException as exc:
-        return {"error": f"Request failed: {exc}"}
+        # Returns a clear message if the Hub could not be reached
+        return _connection_error(exc)
 
-    # --- Success ----------------------------------------------------------
-    if response.ok:
-        if response.status_code == 204 or not response.content:
-            return {"success": True, "status_code": response.status_code}
-        try:
-            return response.json()
-        except ValueError:
-            return {"error": "The API returned a response that was not valid JSON."}
+    # Checks if the API request was not successful
+    if not resp.ok:
+        # Returns the error message instead of crashing
+        return _handle_error(resp)
+    # Converts the response from JSON into Python data and returns it
+    return resp.json()
 
-    # --- Failure: build a clear message instead of raising ----------------
-    # The API reports errors as {"detail": "..."}; 422 errors may use a list.
+
+#Read
+@mcp.tool()
+def get_post(post_id: int) -> dict:
+    """Get a single Practice Hub post by its id.
+
+    Use this when you already know a post's id (for example from list_posts)
+    and need its full details: title, full body, tags, author, timestamps,
+    and attachments.
+
+    Args:
+        post_id: The numeric id of the post to fetch.
+
+    Returns:
+        The post as a dict, or a dict with an "error" key (e.g. 404 if no
+        post has that id).
+    """
     try:
-        detail = response.json().get("detail")
-    except (ValueError, AttributeError):
-        detail = response.text or None
+        # Sends a GET request for the specific post ID
+        resp = requests.get(f"{BASE}/api/v1/posts/{post_id}", headers=HEADERS, timeout=TIMEOUT)
+    except requests.exceptions.RequestException as exc:
+        # Returns a clear message if the Hub could not be reached
+        return _connection_error(exc)
 
-    message = ERROR_MESSAGES.get(
-        response.status_code, f"The API returned HTTP {response.status_code}."
-    )
-    log.warning("%s %s -> %s", method, path, response.status_code)
-
-    result = {"error": message, "status_code": response.status_code}
-    if detail:
-        result["detail"] = detail
-    return result
-
-
-# ---------------------------------------------------------------------------
-# Tools
-# ---------------------------------------------------------------------------
-# Added one step at a time:
-#   list_posts, get_post, create_post, update_post, delete_post
+    # Checks if the API request was not successful
+    if not resp.ok:
+        # Returns the error message instead of crashing
+        return _handle_error(resp)
+    # Converts the response from JSON into Python data and returns it
+    return resp.json()
 
 
+# TODO (next steps): create_post, update_post, delete_post
+
+
+# Checks if this file is being run directly instead of being imported
 if __name__ == "__main__":
-    # Default transport is stdio, which is what `claude mcp add ... -- python server.py` expects.
+    # Starts the server using the stdio transport, which is what
+    # `claude mcp add ... -- python server.py` expects
     mcp.run()
