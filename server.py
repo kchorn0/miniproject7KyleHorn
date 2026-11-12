@@ -296,7 +296,42 @@ def update_post(post_id: int, title: str | None = None, body: str | None = None,
     return resp.json()
 
 
-# TODO (next step): delete_post
+#Delete
+@mcp.tool()
+def delete_post(post_id: int) -> dict:
+    """Permanently delete one of your own Practice Hub posts.
+
+    Use this only when the user asks to delete or remove a post they own.
+    Deleting is permanent and cannot be undone, so confirm the exact post
+    with the user first (use list_posts(mine=True) or get_post to check it
+    is the right one). Deleting someone else's post is not allowed and
+    returns a 403 error.
+
+    Args:
+        post_id: The numeric id of the post to delete.
+
+    Returns:
+        {"success": True, "message": "..."} if the post was deleted, or a
+        dict with an "error" key (e.g. 403 if the post isn't yours, 404 if
+        no post has that id).
+    """
+    try:
+        # Sends a DELETE request for the specific post
+        resp = requests.delete(f"{BASE}/api/v1/posts/{post_id}",
+                               # Sends the API token in the request headers
+                               headers=HEADERS,
+                               timeout=TIMEOUT)
+    except requests.exceptions.RequestException as exc:
+        # Returns a clear message if the Hub could not be reached
+        return _connection_error(exc)
+
+    # Checks if the API request was not successful
+    if not resp.ok:
+        # Returns the error message instead of crashing (e.g. 403 not your post)
+        return _handle_error(resp)
+    # A successful delete returns 204 No Content (an empty body), so there is
+    # no JSON to read - returns a clear success message instead
+    return {"success": True, "message": f"Post {post_id} was deleted."}
 
 
 # Checks if this file is being run directly instead of being imported
