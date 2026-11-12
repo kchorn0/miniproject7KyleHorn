@@ -190,7 +190,48 @@ def get_post(post_id: int) -> dict:
     return resp.json()
 
 
-# TODO (next steps): create_post, update_post, delete_post
+#Create
+@mcp.tool()
+def create_post(title: str, body: str = "", tags: list[str] | None = None) -> dict:
+    """Create a new post on the Practice Hub, owned by your account.
+
+    Use this when the user asks to create, write, or publish a new post.
+    The new post belongs to the account that owns the API token, so you can
+    later edit or delete it with update_post and delete_post.
+
+    Args:
+        title: The post's title (required, cannot be empty).
+        body: The post's text (optional, Markdown is fine). Defaults to empty.
+        tags: Optional list of tag strings, e.g. ["python", "mcp"]. Pass a
+            list, not one comma-separated string. Leave it out for no tags.
+
+    Returns:
+        The newly created post as a dict, including its new "id", or a dict
+        with an "error" key if the post could not be created.
+    """
+    # Checks if the title is missing or only spaces before calling the API
+    if not title or not title.strip():
+        return {"error": "A title is required to create a post."}
+
+    try:
+        # Sends a POST request to the posts endpoint and sends the API token in the request headers
+        resp = requests.post(f"{BASE}/api/v1/posts", headers=HEADERS,
+                             # Sends the title, body, and tags as JSON data
+                             json={"title": title, "body": body, "tags": tags or []},
+                             timeout=TIMEOUT)
+    except requests.exceptions.RequestException as exc:
+        # Returns a clear message if the Hub could not be reached
+        return _connection_error(exc)
+
+    # Checks if the API request was not successful
+    if not resp.ok:
+        # Returns the error message instead of crashing
+        return _handle_error(resp)
+    # Converts the response (the new post, with its id) from JSON into Python data and returns it
+    return resp.json()
+
+
+# TODO (next steps): update_post, delete_post
 
 
 # Checks if this file is being run directly instead of being imported
