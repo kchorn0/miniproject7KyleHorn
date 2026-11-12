@@ -1,0 +1,40 @@
+Mini Project 7 — MCP Server
+
+Week 13 · 100 points
+
+Header your server.py file:
+
+# INF601 - Advanced Programming in Python
+# Your Name
+# Mini Project 7
+Submit a link to your GitHub project — do not upload your files to Blackboard. Name your repo miniproject7YourFullName.
+
+
+
+Goal
+Build a Model Context Protocol (MCP) server that wraps the Practice Hub REST API, so that Claude Code can read, create, and modify your own posts on the site through your server. This connects everything: the API you called by hand in Mini Project 1 is now exposed to an agent.
+
+Use FastMCP (from the official mcp Python SDK).
+
+Requirements and points
+(5) Initial comments (name, class, project) at the top of server.py.
+(5) Proper import of packages used (mcp, an HTTP client such as httpx or requests).
+(10) Read configuration (PRACTICE_API_URL, PRACTICE_API_TOKEN) from the environment — do not hard-code your token.
+(40) Implement these tools, each calling the matching API endpoint, each with a clear docstring (the model uses docstrings to decide when to call a tool):
+(8) list_posts (support at least the mine filter)
+(8) get_post (by id)
+(8) create_post (title, body, tags)
+(8) update_post (edit one of your own posts)
+(8) delete_post (delete one of your own posts)
+(10) Sensible error handling: when the API returns an error (e.g. 403 on a post that isn't yours, 404 on a missing post), your tool returns a clear message rather than crashing the server.
+(10) Register it with Claude Code (claude mcp add ...) and demonstrate the acceptance test: Claude Code, using your server, reads your posts, creates a new post, and modifies an existing post. Include a transcript or screenshots of this in your repo.
+(5) At least 5 commits.
+(5) A requirements.txt.
+(10) A thorough README.md: what the server does, how to install, how to set the environment variables, the exact claude mcp add command, and how to run the acceptance test. Include an ## AI Usage section.
+AI Usage (required)
+Add a short ## AI Usage section to your README per the AI Use Policy.
+
+Tips
+A reference implementation exists; the acceptance test is exactly "read → create → modify, through your server."
+Keep your token out of git — read it from os.environ and add any secrets file to .gitignore. Set it with export PRACTICE_API_TOKEN="..." (macOS/Linux) or $env:PRACTICE_API_TOKEN = "..." (Windows PowerShell), as in Mini Project 1.
+Default MCP transport is stdio, which is what claude mcp add ... -- python server.py expects.

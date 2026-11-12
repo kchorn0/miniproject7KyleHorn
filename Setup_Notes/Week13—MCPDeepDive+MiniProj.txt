@@ -1,0 +1,58 @@
+Week 13 — MCP Deep-Dive + Mini Project 7
+
+Overview
+This week you learn the Model Context Protocol (MCP) — the open standard that lets AI tools like Claude Code connect to external systems through tools, resources, and prompts. Then you build your own MCP server that wraps the Practice Hub API, so Claude Code can read, create, and modify your posts on the site for you. That's Mini Project 7.
+
+This is the payoff of the whole API thread: in Week 1 you got a token, in Week 3 you wrote a requests client, and now you expose that same API to an agent.
+
+To do this week
+Read/watch the MCP materials.
+Build an MCP server with FastMCP (part of the official mcp Python SDK).
+Register it with Claude Code and verify the agent can drive it.
+Submit Mini Project 7.
+Submit your Final Project Outline (also due this week).
+Concepts
+Why MCP exists: a standard way to give an agent new capabilities without hard-coding them into the harness.
+The three primitives: tools (functions the model can call), resources (data the model can read), prompts (reusable prompt templates). This course focuses on tools.
+Transport: stdio (the server runs as a local subprocess — what we use) vs. HTTP (the server runs as a network service).
+Build it (FastMCP sketch)
+import os, httpx
+from mcp.server.fastmcp import FastMCP
+
+BASE = os.environ["PRACTICE_API_URL"]
+TOKEN = os.environ["PRACTICE_API_TOKEN"]
+mcp = FastMCP("practice-hub")
+
+@mcp.tool()
+def list_posts(mine: bool = False) -> list[dict]:
+    """List posts; set mine=True for only your own."""
+    r = httpx.get(f"{BASE}/api/v1/posts", params={"mine": mine},
+                  headers={"Authorization": f"Bearer {TOKEN}"})
+    r.raise_for_status()
+    return r.json()
+
+# ...add get_post, create_post, update_post, delete_post
+
+if __name__ == "__main__":
+    mcp.run()
+Register with Claude Code
+macOS / Linux:
+
+claude mcp add practice-hub \
+  --env PRACTICE_API_URL=https://practice.fhsucyber.com \
+  --env PRACTICE_API_TOKEN=your-token \
+  -- python /absolute/path/to/server.py
+Windows PowerShell — the line-continuation character is a backtick, not a backslash, and the path is a Windows path:
+
+claude mcp add practice-hub `
+  --env PRACTICE_API_URL=https://practice.fhsucyber.com `
+  --env PRACTICE_API_TOKEN=your-token `
+  -- python C:\absolute\path\to\server.py
+If the continuations give you trouble, put the whole command on one line — that works in every shell.
+
+Then ask Claude Code: "use the practice-hub tools to show my posts, create one, and edit its title." That round-trip is the acceptance test.
+
+A complete reference implementation (the grading key) lives in mcp_reference/.
+
+Deliverables
+Mini Project 7: MCP server (see assignments/mini_project_7.md) and the Final Project Outline (see assignments/final_project.md). Both due Sunday midnight CT.

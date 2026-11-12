@@ -1,0 +1,18 @@
+
+Week 13: MCP + Mini Project 7 is open — and Pentest defenses close Wednesday
+Two things wrapping up, two starting.
+
+
+
+Due this week
+
+Pentest Week defenses — Wednesday, Nov 11, 11:59 PM Central. Post your defense to the findings filed against your site and reply to at least two classmates' threads. (Graded discussion.)
+
+
+New this week — MCP Deep-Dive
+
+Mini Project 7 — MCP Server — due Sunday, Nov 16. Build a Model Context Protocol server with FastMCP that wraps the Practice Hub API, so Claude Code can read, create, and modify your posts through your server. This is the payoff of the whole API thread — the API you called by hand in MP1 is now driven by an agent. Build the five tools (list / get / create / update / delete posts), register it with claude mcp add, and run the acceptance test: Claude Code reads, creates, and modifies a post through your server. The Hub is live — API reference at practice.fhsucyber.com/docs-guide; use your Week-1 token.
+Final Project Outline — also due Sunday, Nov 16. Your plan for the concentration-specific final project, including a preliminary agentic-tooling plan. My feedback on the outline counts toward your final grade, so be specific.
+
+
+Questions? Bring them to office hours or email me.
