@@ -231,7 +231,72 @@ def create_post(title: str, body: str = "", tags: list[str] | None = None) -> di
     return resp.json()
 
 
-# TODO (next steps): update_post, delete_post
+#Update
+@mcp.tool()
+def update_post(post_id: int, title: str | None = None, body: str | None = None,
+                tags: list[str] | None = None) -> dict:
+    """Edit one of your own Practice Hub posts.
+
+    Use this when the user asks to edit, rename, or change a post they own.
+    Only the fields you pass are changed; anything left out stays the same.
+    If you don't know the post's id, call list_posts(mine=True) first to
+    find it. Editing someone else's post is not allowed and returns a 403 error.
+
+    Args:
+        post_id: The numeric id of the post to edit.
+        title: New title (optional). Cannot be empty if given.
+        body: New text for the post (optional).
+        tags: New list of tag strings, e.g. ["python", "mcp"] (optional).
+            This replaces the old tags. Pass [] to remove all tags; leave it
+            out to keep the current tags.
+
+    Returns:
+        The updated post as a dict, or a dict with an "error" key (e.g. 403
+        if the post isn't yours, 404 if no post has that id).
+    """
+    # Creates an empty dictionary to hold the information we want to update
+    data = {}
+    # Checks if a new title was provided
+    if title is not None:
+        # Checks if the new title is empty or only spaces
+        if not title.strip():
+            return {"error": "The title cannot be empty."}
+        # Adds the new title to the update data
+        data["title"] = title
+    # Checks if a new body was provided
+    if body is not None:
+        # Adds the new body to the update data
+        data["body"] = body
+    # Checks if new tags were provided
+    if tags is not None:
+        # Adds the new tags to the update data
+        data["tags"] = tags
+
+    # Checks if nothing was provided to update
+    if not data:
+        return {"error": "Nothing to update - provide a title, body, or tags."}
+
+    try:
+        # Sends a PATCH request to update the specific post
+        resp = requests.patch(f"{BASE}/api/v1/posts/{post_id}",
+                              # Sends the API token in the request headers
+                              headers=HEADERS,
+                              # Sends only the information that needs to be updated
+                              json=data,
+                              timeout=TIMEOUT)
+    except requests.exceptions.RequestException as exc:
+        # Returns a clear message if the Hub could not be reached
+        return _connection_error(exc)
+
+    # Checks if the API request was not successful
+    if not resp.ok:
+        # Returns the error message instead of crashing (e.g. 403 not your post)
+        return _handle_error(resp)
+    # Converts the response (the updated post) from JSON into Python data and returns it
+    return resp.json()
+
+
+# TODO (next step): delete_post
 
 
 # Checks if this file is being run directly instead of being imported
