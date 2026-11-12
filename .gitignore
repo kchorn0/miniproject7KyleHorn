@@ -9,6 +9,10 @@ __pycache__/
 # Course notes
 Setup_Notes/
 
+# Claude Code local config - may contain your API token
+.claude/
+.mcp.json
+
 # Distribution / packaging
 .Python
 build/
