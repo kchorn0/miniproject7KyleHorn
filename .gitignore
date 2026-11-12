@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Course notes
+Setup_Notes/
+
 # Distribution / packaging
 .Python
 build/
