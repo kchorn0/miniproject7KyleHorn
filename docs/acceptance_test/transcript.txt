@@ -1,0 +1,90 @@
+ ▐▛███▛█   Claude Code v2.1.325
+▝▜██████▀  Opus 5.5 · Claude Pro
+ ▝▝   ▝▝   ~\Documents\Fort_Hays\MPS_in _IS\F2026\INF601G_Adv_Py_\week13\mi…
+
+  Fable 5.2 is here for your longest and toughest coding tasks, and is included in your plan until November 16. It draws down usage faster than Opus 5.5. Switch with /model.
+  1 more notice hidden
+
+❯ Use the practice-hub tools to show me my posts.                               
+
+  Called practice-hub (ctrl+o to expand)
+
+● You have 3 posts on the Practice Hub, newest first:
+
+  ┌─────┬───────────┬────────────┬──────────────┬────────────┬────────────┐
+  │ ID  │   Title   │    Body    │     Tags     │  Created   │  Updated   │
+  ├─────┼───────────┼────────────┼──────────────┼────────────┼────────────┤
+  │     │ MP7 test  │ Post       │ MP7,         │ 2026-11-12 │ 2026-11-12 │
+  │ 57  │ post 2    │ Number 2   │ ClaudeCode,  │  04:29     │  04:31     │
+  │     │ (edited)  │            │ MCP          │            │            │
+  ├─────┼───────────┼────────────┼──────────────┼────────────┼────────────┤
+  │     │           │ Created by │              │            │            │
+  │ 56  │ MP7 test  │  my MCP    │ none         │ 2026-11-12 │ not edited │
+  │     │ post      │ server -   │              │  04:21     │            │
+  │     │           │ test post  │              │            │            │
+  ├─────┼───────────┼────────────┼──────────────┼────────────┼────────────┤
+  │     │ Week 3    │ My first   │              │ 2026-09-02 │            │
+  │ 4   │ lab       │ created    │ none         │  23:43     │ not edited │
+  │     │           │ post.      │              │            │            │
+  └─────┴───────────┴────────────┴──────────────┴────────────┴────────────┘
+
+  None of them have attachments.
+
+✻ Worked for 6s · done 8:41 PM
+
+❯ Use the practice-hub tools to create a new post with title "MP7 acceptance    
+  test", body "Created by Claude Code through my MCP server", and tags MP7,     
+  ClaudeCode, MCP.                                                              
+
+  Called practice-hub (ctrl+o to expand)
+
+● I created the post on the Practice Hub. It's post #59:
+
+  - Title: MP7 acceptance test
+  - Body: Created by Claude Code through my MCP server
+  - Tags: MP7, ClaudeCode, MCP
+  - Created: 2026-11-14 02:42
+
+  It's owned by your account.
+
+✻ Brewed for 8s · done 8:42 PM
+
+❯ Use the practice-hub tools to change that post's title to "MP7 acceptance     
+  test (edited)".                                                               
+
+  Called practice-hub (ctrl+o to expand)
+
+● I changed post #59's title to "MP7 acceptance test (edited)". The body and
+  tags are the same as before, and the post now shows as updated at 2026-11-14
+  02:43.
+
+✻ Churned for 4s · done 8:43 PM
+
+❯ Use the practice-hub tools to get that post again so I can confirm the        
+  change.                                                                       
+
+  Called practice-hub (ctrl+o to expand)
+
+● The server returns the new title for post #59, so the change was saved:
+
+  ┌─────────────┬──────────────────────────────────────────────┐
+  │    Field    │                    Value                     │
+  ├─────────────┼──────────────────────────────────────────────┤
+  │ ID          │ 59                                           │
+  ├─────────────┼──────────────────────────────────────────────┤
+  │ Title       │ MP7 acceptance test (edited)                 │
+  ├─────────────┼──────────────────────────────────────────────┤
+  │ Body        │ Created by Claude Code through my MCP server │
+  ├─────────────┼──────────────────────────────────────────────┤
+  │ Tags        │ MP7, ClaudeCode, MCP                         │
+  ├─────────────┼──────────────────────────────────────────────┤
+  │ Author      │ Kyle Horn                                    │
+  ├─────────────┼──────────────────────────────────────────────┤
+  │ Created     │ 2026-11-14 02:42:42                          │
+  ├─────────────┼──────────────────────────────────────────────┤
+  │ Updated     │ 2026-11-14 02:43:33                          │
+  ├─────────────┼──────────────────────────────────────────────┤
+  │ Attachments │ none                                         │
+  └─────────────┴──────────────────────────────────────────────┘
+
+✻ Worked for 4s · done 8:44 PM
